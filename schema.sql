@@ -1,3 +1,5 @@
+/* Youngjin Shin & Sam Leach */
+
 CREATE DATABASE IF NOT EXISTS photoshare;
 USE photoshare;
 
