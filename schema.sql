@@ -1,6 +1,13 @@
 CREATE DATABASE IF NOT EXISTS photoshare;
 USE photoshare;
 
+DROP TABLE IF EXISTS Users CASCADE;
+DROP TABLE IF EXISTS Pictures CASCADE;
+DROP TABLE IF EXISTS Friends CASCADE;
+DROP TABLE IF EXISTS Albums CASCADE;
+DROP TABLE IF EXISTS Comments CASCADE;
+DROP TABLE IF EXISTS Tags CASCADE;
+
 CREATE TABLE Users (
     user_id int4  AUTO_INCREMENT,
     email varchar(255) UNIQUE,
@@ -19,13 +26,15 @@ CREATE TABLE Pictures
   user_id int4,
   imgdata longblob ,
   caption VARCHAR(255),
+  album_id int4,
   INDEX upid_idx (user_id),
+  CONSTRAINT abum_pk PRIMARY KEY (albums_id),
   CONSTRAINT pictures_pk PRIMARY KEY (picture_id)
 );
 
 CREATE TABLE Friends(
-	following_id int4,
-    follower_id int4,
+   new_friend_id int4,
+   follower_id int4,
 CONSTRAINT following_fk FOREIGN KEY (following_id) REFERENCES Users(user_id),
 CONSTRAINT follower_fk FOREIGN KEY (follower_id) REFERENCES Users(user_id)
 );
@@ -46,6 +55,13 @@ CREATE TABLE Comments(
     commentDate date, 
 CONSTRAINT comments_pk PRIMARY KEY(comments_id),
 CONSTRAINT comment_owner_fk FOREIGN KEY (comment_owner) REFERENCES Users(user_id)
+);
+
+CREATE TABLE Tags
+(
+  tag varchar(2555),
+  photo_id int4,
+  Foreign key (photo_id) references Photos(photo_id)
 );
 
 INSERT INTO Users (email, password) VALUES ('test@bu.edu', 'test');
