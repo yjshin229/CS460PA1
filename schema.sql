@@ -28,7 +28,7 @@ CREATE TABLE Pictures
   caption VARCHAR(255),
   album_id int4,
   INDEX upid_idx (user_id),
-  CONSTRAINT abum_pk PRIMARY KEY (albums_id),
+  CONSTRAINT album_fk FOREIGN KEY (album_id) references Albums(albums_id),
   CONSTRAINT pictures_pk PRIMARY KEY (picture_id)
 );
 
