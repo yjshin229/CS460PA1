@@ -1,0 +1,11 @@
+The integrity constraints that we established are:
+- the user_id in the Users table is a primary key to have a unique identifier for each user
+- the picture_id in the Pictures table is a primary key to have a unique identifier for each picture
+- the album_id is a foreign key in the Pictures table that references the albums_id attribute in the Albums table
+- their is a participation constraint established in the pictures table where each picture can only have one Album assigned to it using the foreign key mentioned above
+- their are two foreign keys in the Friends table, new_friend_id and follower_id that each reference the user_id of the person who sent the friend request and the person who recieved it
+- the albums_id in the Albums table is the primary key to give a unique identifier to each album
+- the owner_id in the Albums table is a foreign key that references the user_id of the creater of said album
+- the comments_id attribute in the Comments table is the primary key to give a unique identifier to each comment
+- the comment_owner attribute in the Comments table is a foreign key that references the user_id of the person who posted the comment
+- the photo_id attribute in the Tags table is a foreign key that references the photo_id of the photo the tag is assigned to
