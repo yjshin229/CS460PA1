@@ -59,7 +59,7 @@ CONSTRAINT comment_owner_fk FOREIGN KEY (comment_owner) REFERENCES Users(user_id
 
 CREATE TABLE Tags
 (
-  tag varchar(2555),
+  tag varchar(255),
   photo_id int4,
   Foreign key (photo_id) references Photos(photo_id)
 );
