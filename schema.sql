@@ -11,12 +11,12 @@ DROP TABLE IF EXISTS Tags CASCADE;
 CREATE TABLE Users (
     user_id int4  AUTO_INCREMENT,
     email varchar(255) UNIQUE,
-    password varchar(255),
-    firstname varchar(30),
-    lastname varchar(30),
+    user_pass varchar(255),
+    firstname varchar(255),
+    lastname varchar(255),
     dob date,
     hometown varchar(255),
-    gender varchar(6),
+    gender varchar(30),
   CONSTRAINT users_pk PRIMARY KEY (user_id)
 );
 
@@ -51,7 +51,7 @@ CONSTRAINT owner_fk FOREIGN KEY (owner_id) REFERENCES Users(user_id)
 CREATE TABLE Comments(
 	comments_id int4 AUTO_INCREMENT,
     comment_owner int4 NOT NULL,
-    text varchar(255),
+    comment_text varchar(255),
     commentDate date, 
 CONSTRAINT comments_pk PRIMARY KEY(comments_id),
 CONSTRAINT comment_owner_fk FOREIGN KEY (comment_owner) REFERENCES Users(user_id)
@@ -64,5 +64,3 @@ CREATE TABLE Tags
   Foreign key (photo_id) references Photos(photo_id)
 );
 
-INSERT INTO Users (email, password) VALUES ('test@bu.edu', 'test');
-INSERT INTO Users (email, password) VALUES ('test1@bu.edu', 'test');
