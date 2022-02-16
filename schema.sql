@@ -61,6 +61,6 @@ CREATE TABLE Tags
 (
   tag varchar(255),
   photo_id int4,
-  Foreign key (photo_id) references Photos(photo_id)
+  CONSTRAINT tag_fk FOREIGN KEY (photo_id) REFERENCES Photos(photo_id)
 );
 
