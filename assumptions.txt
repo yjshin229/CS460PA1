@@ -1,9 +1,0 @@
-- Users and comments are in a many-to-one relationship. 
-  - Users are allowed to write multiple comments.
-- Albums and pictures are in a many-to-one relationship.
- - Albums are allowed to have many pictures but each picture can only be in one album. 
-- Friends is a weak entity. It can only be identified by a primary key of another entity(user_id).
-- Tag is a weak entity. It can only be identified by a primary key of another entity(photo_id).
-  - The attribute,single word, is the partial key for tag. 
-- Pictures and tags are in a one-to-many relationship.
-  - Since tag is a weak entity, picutures and tag must be in one-to-many relationship. A same tag can be tagged in many pictures.
