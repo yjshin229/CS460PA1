@@ -12,6 +12,7 @@
 import flask
 from flask import Flask, Response, request, render_template, redirect, url_for
 from flaskext.mysql import MySQL
+import datetime
 import flask_login
 
 #for image uploading
@@ -23,7 +24,7 @@ app.secret_key = 'super secret string'  # Change this!
 
 #These will need to be changed according to your creditionals
 app.config['MYSQL_DATABASE_USER'] = 'root'
-app.config['MYSQL_DATABASE_PASSWORD'] = 'pass'
+app.config['MYSQL_DATABASE_PASSWORD'] = 'GL2005-11!gj'
 app.config['MYSQL_DATABASE_DB'] = 'photoshare'
 app.config['MYSQL_DATABASE_HOST'] = 'localhost'
 mysql.init_app(app)
@@ -63,7 +64,7 @@ def request_loader(request):
 	user = User()
 	user.id = email
 	cursor = mysql.connect().cursor()
-	cursor.execute("SELECT password FROM Users WHERE email = '{0}'".format(email))
+	cursor.execute("SELECT user_pass FROM Users WHERE email = '{0}'".format(email))
 	data = cursor.fetchall()
 	pwd = str(data[0][0] )
 	user.is_authenticated = request.form['password'] == pwd
@@ -91,7 +92,7 @@ def login():
 	email = flask.request.form['email']
 	cursor = conn.cursor()
 	#check if email is registered
-	if cursor.execute("SELECT password FROM Users WHERE email = '{0}'".format(email)):
+	if cursor.execute("SELECT user_pass FROM Users WHERE email = '{0}'".format(email)):
 		data = cursor.fetchall()
 		pwd = str(data[0][0] )
 		if flask.request.form['password'] == pwd:
@@ -129,7 +130,7 @@ def register_user():
 	cursor = conn.cursor()
 	test =  isEmailUnique(email)
 	if test:
-		print(cursor.execute("INSERT INTO Users (email, password) VALUES ('{0}', '{1}')".format(email, password)))
+		print(cursor.execute("INSERT INTO Users (email, user_pass) VALUES ('{0}', '{1}')".format(email, password)))
 		conn.commit()
 		#log user in
 		user = User()
@@ -144,6 +145,11 @@ def getUsersPhotos(uid):
 	cursor = conn.cursor()
 	cursor.execute("SELECT imgdata, picture_id, caption FROM Pictures WHERE user_id = '{0}'".format(uid))
 	return cursor.fetchall() #NOTE list of tuples, [(imgdata, pid), ...]
+
+def getUsersPhotosComments(uid):
+	cursor = conn.cursor()
+	cursor.execute("SELECT comments_id, comment_owner, comment_photo_id, comment_text, comment_date FROM Comments INNER JOIN Pictures ON Comments.comment_photo_id=Pictures.picture_id AND Pictures.user_id='{0}' GROUP BY Comments.comment_photo_id ORDER BY Comments.comment_date".format(uid))
+	return cursor.fetchall()
 
 def getUserIdFromEmail(email):
 	cursor = conn.cursor()
@@ -188,7 +194,23 @@ def upload_file():
 		return render_template('upload.html')
 #end photo uploading code
 
-
+#comments function
+@app.route("/hello", methods=['POST'])
+def add_comment():
+	uid = getUserIdFromEmail(flask_login.current_user.id)
+	date = datetime.datetime.now()
+	try:
+		comment=request.form.get('comment')
+		photoid=request.form.get('photoid')
+	except:
+		print("couldn't find all tokens") #this prints to shell, end users will not see this (all print statements go to shell)
+		return flask.redirect(flask.url_for('hello'))
+	cursor = conn.cursor()
+	test = True
+	if test:
+		print(cursor.execute("INSERT INTO Comments (comment_owner, comment_text, commentDate, comment_photo_id) VALUES (%d, %s, %d, %d)", (uid, comment, date, photoid)))
+		conn.commit()
+		return render_template('hello.html', name=flask_login.current_user.id, message='Comment Added!', photos=getUsersPhotos(uid),base64=base64)
 #default page
 @app.route("/", methods=['GET'])
 def hello():
