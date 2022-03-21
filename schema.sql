@@ -26,7 +26,7 @@ CREATE TABLE Albums(
 	albums_id int4 AUTO_INCREMENT,
 	album_name varchar(50),
 	albumDate date,
-    owner_id int4,
+  owner_id int4,
 CONSTRAINT albums_pk PRIMARY KEY(albums_id),
 CONSTRAINT owner_fk FOREIGN KEY (owner_id) REFERENCES Users(user_id)
 );
@@ -39,17 +39,16 @@ CREATE TABLE Pictures
   caption VARCHAR(255),
   album_id int4,
   INDEX upid_idx (user_id),
-  CONSTRAINT album_fk FOREIGN KEY (album_id) references Albums(albums_id),
+  CONSTRAINT album_fk FOREIGN KEY (album_id) references Albums(albums_id) ON DELETE CASCADE,
   CONSTRAINT pictures_pk PRIMARY KEY (picture_id)
 );
 
 CREATE TABLE Friends(
-   new_friend_id int4,
-   follower_id int4,
-CONSTRAINT new_friend_fk FOREIGN KEY (new_friend_id) REFERENCES Users(user_id),
-CONSTRAINT follower_fk FOREIGN KEY (follower_id) REFERENCES Users(user_id)
+   user_id int4,
+   friend_id int4,
+CONSTRAINT user_fk FOREIGN KEY (user_id) REFERENCES Users(user_id) ON DELETE CASCADE,
+CONSTRAINT friend_fk FOREIGN KEY (friend_id) REFERENCES Users(user_id) ON DELETE CASCADE
 );
-
 
 CREATE TABLE Comments(
 	comments_id int4 AUTO_INCREMENT,
@@ -65,7 +64,7 @@ CONSTRAINT comment_owner_fk FOREIGN KEY (comment_owner) REFERENCES Users(user_id
 CREATE TABLE Tags
 (
   tag varchar(255),
-  photo_id int4,
-  CONSTRAINT tag_fk FOREIGN KEY (photo_id) REFERENCES Pictures(photo_id)
+  picture_id int4,
+  CONSTRAINT tag_fk FOREIGN KEY (picture_id) REFERENCES Pictures(picture_id)
 );
 

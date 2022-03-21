@@ -11,9 +11,9 @@
 {% if photos %}
 <h2>Here are your photos</h2>
     <ul>
-    {% for photo in photos %}
+    {% for picture in pictures %}
 
-        <li>{{photo[2]}}<br>
+        <li>{{picture[2]}}<br>
         <img src='data:image/jpg;base64, {{ base64.b64encode(photo[0]).decode("ascii") }}'/></li>
         <form method="post" action="{{ url_for('add_comment') }}">
           <label for="comment">Comment: </label>
