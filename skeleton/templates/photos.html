@@ -1,0 +1,30 @@
+
+    {% if photos %}
+    <p>Photos:</p>
+    <ul>
+        {% for photo in photos %}
+        <li>{{photo[2]}}<br>
+            <img src='data:image/jpg;base64, {{ base64.b64encode(photo[0]).decode("ascii") }}'/></li>
+            <form method="post" action="{{ url_for('add_comment') }}">
+                <label for="comment">Comment: </label>
+                <input type="text" name="comment"/>
+                <!-- <label for="album_name">Album: </label> -->
+                <input type="hidden" name="photoid" value="{{photo[1]}}">
+                <input type="submit">
+              </form>
+        {% endfor %}
+    </ul>
+    {% endif %}
+
+    {% if albums %}
+    <p>Albums:</p>
+    <ul>
+        {% for album in albums %}
+        <a>{{album[1]}}</a>
+
+        {% endfor %}
+    </ul>
+    {% endif %}
+
+        
+    </head>
