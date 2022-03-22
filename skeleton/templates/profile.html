@@ -30,7 +30,7 @@
      <h2>Here is your photos</h2>
      <ul>
          {%for photo in photos%}
-         <a href ="{{url_for('getAlbumPhotos', photo_id = photo[0])}}">{{photo[2]}}</a><br>
+         <a href ="{{url_for('getPhotoFromProfile', photo_id = photo[1])}}">{{photo[2]}}</a><br>
             <img src='data:image/jpg;base64, {{ base64.b64encode(photo[0]).decode("ascii") }}'/></li>
          {% endfor %}
      </ul>

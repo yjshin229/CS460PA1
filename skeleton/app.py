@@ -377,7 +377,7 @@ def getPhotoFromProfile(photo_id):
 	cursor = conn.cursor()
 	cursor.execute("SELECT imgdata, picture_id FROM Pictures WHERE Pictures.photo_id = '{0}'".format(photo_id))
 	pictures = cursor.fetchall()
-	return render_template("photoFromProfile.html", photo_id=photo_id, photos=pictures)
+	return render_template("photoFromProfile.html", photo_id=photo_id, photo=pictures)
 
 @app.route('/photoFromProfile', methods =['GET', 'POST'])
 @flask_login.login_required
