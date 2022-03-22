@@ -30,12 +30,8 @@
      <h2>Here is your photos</h2>
      <ul>
          {%for photo in photos%}
-         <li>{{photo[2]}}<br>
+         <a href ="{{url_for('getAlbumPhotos', photo_id = photo[0])}}">{{photo[2]}}</a><br>
             <img src='data:image/jpg;base64, {{ base64.b64encode(photo[0]).decode("ascii") }}'/></li>
-            <form method="post" action="{{url_for('delete_picture')}}">
-                <input type="hidden" name="picture_id" value="{{photo[1]}}">
-                <input type="submit" value="Delete Photo">
-            </form>
          {% endfor %}
      </ul>
     {% endif %}
