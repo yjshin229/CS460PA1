@@ -16,7 +16,7 @@ from flaskext.mysql import MySQL
 import flask_login
 
 #for current date
-from datetime import datetime 
+from datetime import date
 
 #for image uploading
 import os, base64
@@ -173,7 +173,7 @@ def protected():
     return render_template('profile.html', name=flask_login.current_user.id,
                            friends = getFriendsList(user_id),
 						   photos = getUsersPhotos(user_id),
-                           userActivity = userActivity(),
+						   albums = getUsersAlbums(user_id),
                            message= "Here's your profile",
 						   base64=base64)
 
@@ -222,19 +222,22 @@ def userActivity():
     data = [getUsernameFromEmail(item[0]) for item in data]
     return data
 
+# TAG MANAGEMENT
+
 #ALBUM MANAGEMENT
 
 @app.route('/createAlbum', methods=['GET', 'POST'])
 @flask_login.login_required
 def createAlbum():
     if request.method == 'POST':
-        user_id = flask_login.current_user.id
+        user_id = getUserIdFromEmail(flask_login.current_user.id)
+        print(user_id)
         album_name = request.form.get('album_name')
-        albumDate = getDate()
+        albumDate = date.today()
         cursor = conn.cursor()
-        cursor.execute("INSERT INTO Albums (almbum_name, albumDate, user_id) VALUES ('{0}','{1}','{2}')".format(album_name, albumDate, user_id))
+        cursor.execute("INSERT INTO Albums (album_name, albumDate, owner_id) VALUES ('{0}','{1}','{2}')".format(album_name, albumDate, user_id))
         conn.commit()
-        return flask.redirect(url_for('protected'))
+        return render_template('profile.html',name = flask_login.current_user.id, photos = getUsersPhotos(user_id), albums= getUsersAlbums(user_id), base64=base64)
     else:
         return flask.redirect(url_for('protected'))
 
@@ -245,15 +248,24 @@ def getAlbum(uid):
     albums = [item[0] for item in data]
     return albums
 
+@app.route('/profile', methods=['GET', 'POST'])
 @flask_login.login_required
-def delete_album(album_name):
+def delete_album():
     if request.method == 'POST':
-        user_id = getUserIdFromEmail(flask.login.current_user_id)
-        album_id = getAlbumId(album_name, user_id)
+        user_id = getUserIdFromEmail(flask_login.current_user.id)
+        album_id = request.form.get('album_id')
+        print(album_id)
         cursor = conn.cursor()
-        cursor.execute("DELETE FROM Albums WHERE album_id = '{0}'".format(album_id))
+        cursor.execute("DELETE FROM Pictures WHERE album_id= '{0}'".format(album_id))
+        cursor.execute("DELETE FROM Albums WHERE albums_id = '{0}'".format(album_id))
         conn.commit()
-        return render_template('profile.html',name = flask_login.current_user.id, album = album_name)
+        return flask.redirect(url_for('delete_album',name = flask_login.current_user.id, friends = getFriendsList(user_id),
+						   photos = getUsersPhotos(user_id),
+						   albums = getUsersAlbums(user_id),
+						   comments = getAllComments(),
+                           userActivity = userActivity(),
+                           message= "Album Deleted!",
+						   base64=base64))
     else:
         return flask.redirect(url_for('protected'))
     
@@ -266,13 +278,98 @@ def allowed_file(filename):
 	return '.' in filename and filename.rsplit('.', 1)[1] in ALLOWED_EXTENSIONS
 
     
-def getAlbumPhotos(album_name,user_id):
-    album_id = getAlbumId(album_name, user_id)
+@app.route('/photosInAlbum/<album_id>')   
+def getAlbumPhotos(album_id):
     cursor = conn.cursor()
-    cursor.execute("SELECT imgdata, caption FROM WHERE album_id = album_id")
+    cursor.execute("SELECT imgdata, caption FROM Pictures WHERE album_id = '{0}'".format(album_id))
     pictures = cursor.fetchall()
-    return pictures
+    return render_template("photosInAlbum.html", album_id = album_id, photos = pictures)
+
+@app.route('/photosInAlbum',  methods =['GET','POST'])
+@flask_login.login_required
+def addPhotoToAlbum():
+    if request.method =='POST':
+        user_id = getUserIdFromEmail(flask_login.current_user.id)
+        imgfile = request.files['photo']
+        imgdata = imgfile.read()
+        caption = request.form.get('caption')
+        album_id = request.args.get('album_id')
+        cursor = conn.cursor()
+        cursor.execute("INSERT INTO Pictures (user_id, imgdata, caption, album_id) VALUES ('{0}', '{1}', '{2}', '{3}')".
+                       format(user_id, imgdata, caption, album_id))  # not sure why the encoding for image isn't working
+        conn.commit()
+        return render_template('photosInAlbum.html',name = flask_login.current_user.id, 
+						   photos = getAlbumPhotos(album_id), album_id = album_id,
+                           message= "Photo uploaded!")
+    else:
+        return flask.redirect(url_for('protected'))
+
     
+@app.route('/allPhotosFromTag/<tag>')
+def getTagPhotos(tag):
+	cursor = conn.cursor()
+	cursor.execute("SELECT Tags.picture_id, imgdata, caption FROM Pictures, Tags WHERE Pictures.picture_id=Tags.picture_id AND Tags.tag = '{0}'".format(tag))
+	pictures = cursor.fetchall()
+	return render_template("allPhotosFromTag.html", tag=tag, photos=pictures)
+
+@app.route('/allPhotosFromTag', methods =['GET', 'POST'])
+def displayTagPhotos():
+	if request.method =='POST':
+		tag = request.args.get('tag')
+		return render_template('allPhotosFromTag.html', tag=tag)
+	else:
+		return flask.redirect(url_for('protected'))
+
+@app.route('/userPhotosFromTag/<tag>')
+def getUserTagPhotos(tag):
+	uid = getUserIdFromEmail(flask_login.current_user.id)
+	cursor = conn.cursor()
+	cursor.execute("SELECT Tags.picture_id, imgdata, caption FROM Pictures, Tags WHERE Pictures.picture_id=Tags.picture_id AND Pictures.user_id='{0}' AND Tags.tag = '{1}'".format(uid, tag))
+	pictures = cursor.fetchall()
+	return render_template("userPhotosFromTag.html", tag=tag, photos=pictures)
+
+@app.route('/userPhotosFromTag', methods =['GET', 'POST'])
+@flask_login.login_required
+def displayUserTagPhotos():
+	if request.method =='POST':
+		tag = request.args.get('tag')
+		return render_template('userPhotosFromTag.html', tag=tag)
+	else:
+		return flask.redirect(url_for('protected'))
+
+@app.route('/allPhotosFromPopTag/<tag>')
+def getAllPopTagPhotos(tag):
+	uid = getUserIdFromEmail(flask_login.current_user.id)
+	cursor = conn.cursor()
+	cursor.execute("SELECT Tags.picture_id, imgdata, caption FROM Pictures, Tags WHERE Pictures.picture_id=Tags.picture_id AND Pictures.user_id='{0}' AND Tags.tag = '{1}'".format(uid, tag))
+	pictures = cursor.fetchall()
+	return render_template("allPhotosFromPopTag.html", tag=tag, photos=pictures)
+
+@app.route('/allPhotosFromPopTag', methods =['GET', 'POST'])
+@flask_login.login_required
+def displayAllPopTagPhotos():
+	if request.method =='POST':
+		tag = request.args.get('tag')
+		return render_template('allPhotosFromPopTag.html', tag=tag)
+	else:
+		return flask.redirect(url_for('protected'))
+
+@app.route('/usersWhoLiked/<photo_id>')
+def getUsersWhoLiked(photo_id):
+	photo_id = request.args.get('photo_id')
+	cursor = conn.cursor()
+	cursor.execute("SELECT firstname FROM Users, Likes WHERE Likes.photo_id='{0}' and Users.user_id = Likes.user_id".format(photo_id))
+	likers = cursor.fetchall()
+	return render_template("usersWhoLiked.html", photo_id=photo_id, users=likers)
+
+@app.route('/usersWhoLiked', methods =['GET', 'POST'])
+@flask_login.login_required
+def displayUsersWhoLiked():
+	if request.method =='POST':
+		photo_id = request.args.get('photo_id')
+		return render_template('usersWhoLiked.html', photo_id=photo_id)
+	else:
+		return flask.redirect(url_for('protected'))
 
 @app.route('/pictures', methods = ['GET'])
 def pictures(album_name,email):
@@ -291,24 +388,40 @@ def upload_file():
 		uid = getUserIdFromEmail(flask_login.current_user.id)
 		imgfile = request.files['photo']
 		caption = request.form.get('caption')
+		tag = request.form.get('tag')
 		# album_id = getAlbumId(album_name,uid)
 		imgdata =imgfile.read()
 		cursor = conn.cursor()
 		cursor.execute('''INSERT INTO Pictures (user_id, imgdata, caption) VALUES (%s, %s, %s )''' ,(uid,imgdata,caption))
 		conn.commit()
-		print(getUsersPhotos(uid))
-		return render_template('photos.html', name=flask_login.current_user.id, message='Photo uploaded!', photos=getAllPhotos(), albums=getAllAlbums(), base64=base64)
+		photo_id = getPhotoId(uid, caption)
+		print(photo_id)
+		cursor = conn.cursor()
+		cursor.execute('''INSERT INTO Tags (tag, picture_id) VALUES (%s, %s)''' ,(tag, photo_id))
+		conn.commit()
+		return render_template('photos.html', name=flask_login.current_user.id, message='Photo uploaded!', photos=getAllPhotos(), albums=getAllAlbums(), tags=getAllTags(), poptags=getPopularTags(), comments=getAllComments(), likes=getAllLikes(), base64=base64)
 	#The method is GET so we return a  HTML form to upload the a photo.
 	else:
 		return render_template('upload.html')
 
+@app.route('/profile', methods=['GET', 'POST'])
 def delete_picture():
-    album_name = request.form.get('album_name')
-    picture_id = request.form.get('picture_id')
-    cursor = conn.cursor()
-    cursor.execute("DELETE FROM Pictures WHERE picture_id = '{0}'".format(picture_id))
-    conn.commit()
-    return flask.redirect(url_for('pictures.html', album_name = album_name))
+	if request.method == 'POST':
+		picture_id = request.form.get('picture_id')
+		user_id = getUserIdFromEmail(flask_login.current_user.id)
+		cursor = conn.cursor()
+		cursor.execute("DELETE FROM Pictures WHERE picture_id = '{0}'".format(picture_id))
+		conn.commit()
+		return flask.redirect(url_for('delete_picture', name=flask_login.current_user.id,
+							friends = getFriendsList(user_id),
+							photos = getUsersPhotos(user_id),
+							albums = getUsersAlbums(user_id),
+							comments=getAllComments(),
+							userActivity = userActivity(),
+							message= "Picture Deleted!",
+							base64=base64))
+	else:
+		return flask.redirect(url_for('protected'))
 
 def getUserIdFromEmail(email):
     cursor = conn.cursor()
@@ -325,9 +438,19 @@ def getUsersPhotos(uid):
 	cursor.execute("SELECT imgdata, picture_id, caption FROM Pictures WHERE user_id = '{0}'".format(uid))
 	return cursor.fetchall() #NOTE list of tuples, [(imgdata, pid), ...]
 
+def getUsersAlbums(uid):
+	cursor = conn.cursor()
+	cursor.execute("SELECT albums_id, album_name FROM Albums WHERE owner_id='{0}'".format(uid))
+	return cursor.fetchall()
+
+def getUsersFromComment():
+	comment = request.form.get('comment')
+	cursor.execute("SELECT firstname,COUNT(*)  AS ccount FROM Comments, USERS WHERE comment_text='{0}' AND Comments.comment_owner=Users.user_id GROUP BY comment_owner ORDER BY ccount DESC".format(comment))
+	return cursor.fetchall()
+
 def getAllPhotos():
 	cursor = conn.cursor()
-	cursor.execute("SELECT imgdata, picture_id, caption FROM Pictures")
+	cursor.execute("SELECT imgdata, picture_id, caption, user_id FROM Pictures")
 	return cursor.fetchall()
 
 def getAllAlbums():
@@ -335,29 +458,87 @@ def getAllAlbums():
 	cursor.execute("SELECT albums_id, album_name FROM Albums")
 	return cursor.fetchall()
 
+def getAllTags():
+	cursor = conn.cursor()
+	print(cursor.execute("SELECT DISTINCT tag FROM Tags"))
+	return cursor.fetchall()
+
+def getAllComments():
+	cursor = conn.cursor()
+	print(cursor.execute("SELECT comment_photo_id, comment_text, comment_date FROM Comments ORDER BY comment_date DESC"))
+	return cursor.fetchall()
+
+def getAllLikes():
+	cursor = conn.cursor()
+	print(cursor.execute("SELECT photo_id, COUNT(*) FROM Likes GROUP BY photo_id"))
+	return cursor.fetchall()
+
+def getLikesForPhoto():
+	photo_id = request.args.get('photo_id')
+	cursor = conn.cursor("SELECT firstname FROM Users, Likes WHERE Likes.photo_id='{0}' and Users.user_id = Likes.user_id".format(photo_id))
+
 def getUsersPhotosComments(uid):
 	cursor = conn.cursor()
 	cursor.execute("SELECT comments_id, comment_owner, comment_photo_id, comment_text, comment_date FROM Comments INNER JOIN Pictures ON Comments.comment_photo_id=Pictures.picture_id AND Pictures.user_id='{0}' GROUP BY Comments.comment_photo_id ORDER BY Comments.comment_date".format(uid))
 	return cursor.fetchall()
+
+def getPhotoId(uid, caption):
+	cursor = conn.cursor()
+	print(caption)
+	cursor.execute("SELECT picture_id FROM Pictures WHERE Pictures.user_id='{0}' AND Pictures.caption='{1}'".format(uid, caption))
+	return cursor.fetchone()[0]
 
 def getUserIdFromEmail(email):
 	cursor = conn.cursor()
 	cursor.execute("SELECT user_id  FROM Users WHERE email = '{0}'".format(email))
 	return cursor.fetchone()[0]
 
+def getAllPhotosfromTag():
+	tag = request.args.get('tag')
+	cursor = conn.cursor()
+	cursor.execute("SELECT Tags.picture_id, imgdata FROM Pictures, Tags WHERE Pictures.picture_id=Tags.picture_id AND Tags.tag = '{0}'".format(tag))
+	return cursor.fetchall()
+
+def getPopularTags():
+	cursor = conn.cursor()
+	cursor.execute("SELECT tag,COUNT(*)  AS ccount FROM Tags GROUP BY tag ORDER BY ccount DESC")
+	return cursor.fetchall()
+
+@flask_login.login_required
+def getUserPhotosfromTag():
+	tag = request.args.get('tag')
+	uid = getUserIdFromEmail(flask_login.current_user.id)
+	cursor = conn.cursor()
+	cursor.execute("SELECT Tags.picture_id, imgdata FROM Pictures, Tags WHERE Pictures.picture_id=Tags.picture_id AND Pictures.user_id='{0}' AND Tags.tag = '{1}'".format(uid, tag))
+	return cursor.fetchall()
+
 def getAlbumId(album_name, user_id):
     cursor = conn.cursor()
-    cursor.execute("SELECT album_id FROM Albums WHERE album_name = '{0}' AND user_id = '{1}'".format(album_name,user_id))
+    cursor.execute("SELECT albums_id FROM Albums WHERE album_name = '{0}' AND owner_id = '{1}'".format(album_name,user_id))
     return cursor.fetchone()[0]
     
+@flask_login.login_required
+@app.route("/photos")
+def likePhoto():
+	photoid = request.args.get('photoid')
+	print(photoid)
+	uid = getUserIdFromEmail(flask_login.current_user.id)
+	cursor = conn.cursor()
+	cursor.execute("INSERT INTO Likes (user_id, photo_id) VALUES (%s, %s)", (uid, photoid))
+	conn.commit()
+	return render_template('photos.html', name=flask_login.current_user.id, message='Photo uploaded!', photos=getAllPhotos(), albums=getAllAlbums(), tags=getAllTags(), poptags=getPopularTags(), comments=getAllComments(), likes=getAllLikes(), base64=base64)
+	
 @app.route("/photos", methods=['GET'])
 def display_photos():
-	return render_template('photos.html', photos=getAllPhotos(), albums=getAllAlbums(), base64=base64)
+	print(getAllComments())
+	print("uid", getUserIdFromEmail(flask_login.current_user.id))
+	return render_template('photos.html', name=getUserIdFromEmail(flask_login.current_user.id), photos=getAllPhotos(), albums=getAllAlbums(), tags=getAllTags(), poptags=getPopularTags(), comments=getAllComments(), likes=getAllLikes(), base64=base64)
 
 @app.route("/hello", methods=['POST'])
 def add_comment():
 	uid = getUserIdFromEmail(flask_login.current_user.id)
-	date = datetime.datetime.now()
+	day = date.today()
+	print("uid", uid)
 	try:
 		comment=request.form.get('comment')
 		photoid=request.form.get('photoid')
@@ -367,14 +548,11 @@ def add_comment():
 	cursor = conn.cursor()
 	test = True
 	if test:
-		print(cursor.execute("INSERT INTO Comments (comment_owner, comment_text, commentDate, comment_photo_id) VALUES (%d, %s, %d, %d)", (uid, comment, date, photoid)))
+		print(cursor.execute("INSERT INTO Comments (comment_owner, comment_text, comment_date, comment_photo_id) VALUES (%s, %s, %s, %s)", (uid, comment, day, photoid)))
 		conn.commit()
-		return render_template('hello.html', name=flask_login.current_user.id, message='Comment Added!', photos=getUsersPhotos(uid),base64=base64)
+		print(getAllComments())
+		return render_template('photos.html', name=flask_login.current_user.id, message='Photo uploaded!', photos=getAllPhotos(), albums=getAllAlbums(), tags=getAllTags(), comments=getAllComments(), likes=getAllLikes(), base64=base64)
 
-
-#get today's date
-def getDate():
-    return datetime.date.today()
 
 #default page
 @app.route("/", methods=['GET'])

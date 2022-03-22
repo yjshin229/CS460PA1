@@ -1,0 +1,13 @@
+
+{% extends "profile.html" %}
+
+{%if message %}
+<p>{{message}}</p>
+{%endif%}
+{% if album %}
+<a href ="{{album}}">{{album[0]}}</a><br>  
+    <form method="post" action="{{url_for('delete_album')}}">
+        <input type="hidden" name="album_id" value="{{album[1]}}">
+        <input type="submit" value="Delete Album">
+    </form>
+{% endif %}
