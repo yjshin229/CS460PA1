@@ -10,11 +10,13 @@
     {% endif %}
 
     {% if photos %}
+    {% if comments %}
     <p>Photos:</p>
     <ul>
         {% for photo in photos %}
-        <li>{{photo[2]}}<br>
+        <h2>{{photo[2]}}</h2><br>
             <img src='data:image/jpg;base64, {{ base64.b64encode(photo[0]).decode("ascii") }}'/></li>
+            {% if photo[3] != name %}
             <form method="post" action="{{ url_for('add_comment') }}">
                 <label for="comment">Comment: </label>
                 <input type="text" name="comment"/>
@@ -22,8 +24,15 @@
                 <input type="hidden" name="photoid" value="{{photo[1]}}">
                 <input type="submit">
               </form>
+            {% endif %}  
+                {% for comment in comments %}
+                    {% if photo[1] == comment[0] %}
+                    <li>{{comment[1]}}</li>
+                    {% endif %}
+                {% endfor %}  
         {% endfor %}
     </ul>
+    {% endif %}
     {% endif %}
 
     {% if albums %}

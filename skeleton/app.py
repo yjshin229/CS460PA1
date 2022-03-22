@@ -325,7 +325,7 @@ def upload_file():
 		cursor = conn.cursor()
 		cursor.execute('''INSERT INTO Tags (tag, picture_id) VALUES (%s, %d)''' ,(tag, photo_id))
 		conn.commit()
-		return render_template('photos.html', name=flask_login.current_user.id, message='Photo uploaded!', photos=getAllPhotos(), albums=getAllAlbums(), tags=getAllTags(), base64=base64)
+		return render_template('photos.html', name=flask_login.current_user.id, message='Photo uploaded!', photos=getAllPhotos(), albums=getAllAlbums(), tags=getAllTags(), comments=getAllComments(), base64=base64)
 	#The method is GET so we return a  HTML form to upload the a photo.
 	else:
 		return render_template('upload.html')
@@ -342,6 +342,7 @@ def delete_picture():
 							friends = getFriendsList(user_id),
 							photos = getUsersPhotos(user_id),
 							albums = getUsersAlbums(user_id),
+							comments=getAllComments(),
 							userActivity = userActivity(),
 							message= "Picture Deleted!",
 							base64=base64))
@@ -370,7 +371,7 @@ def getUsersAlbums(uid):
 
 def getAllPhotos():
 	cursor = conn.cursor()
-	cursor.execute("SELECT imgdata, picture_id, caption FROM Pictures")
+	cursor.execute("SELECT imgdata, picture_id, caption, user_id FROM Pictures")
 	return cursor.fetchall()
 
 def getAllAlbums():
@@ -381,6 +382,11 @@ def getAllAlbums():
 def getAllTags():
 	cursor = conn.cursor()
 	print(cursor.execute("SELECT DISTINCT tag FROM Tags"))
+	return cursor.fetchall()
+
+def getAllComments():
+	cursor = conn.cursor()
+	print(cursor.execute("SELECT comment_photo_id, comment_text, comment_date FROM Comments ORDER BY comment_date DESC"))
 	return cursor.fetchall()
 
 def getUsersPhotosComments(uid):
@@ -405,12 +411,15 @@ def getAlbumId(album_name, user_id):
     
 @app.route("/photos", methods=['GET'])
 def display_photos():
-	return render_template('photos.html', photos=getAllPhotos(), albums=getAllAlbums(), tags=getAllTags(), base64=base64)
+	print(getAllComments())
+	print("uid", getUserIdFromEmail(flask_login.current_user.id))
+	return render_template('photos.html', name=getUserIdFromEmail(flask_login.current_user.id), photos=getAllPhotos(), albums=getAllAlbums(), tags=getAllTags(), comments=getAllComments(), base64=base64)
 
 @app.route("/hello", methods=['POST'])
 def add_comment():
 	uid = getUserIdFromEmail(flask_login.current_user.id)
-	date = getDate()
+	day = date.today()
+	print("uid", uid)
 	try:
 		comment=request.form.get('comment')
 		photoid=request.form.get('photoid')
@@ -420,14 +429,11 @@ def add_comment():
 	cursor = conn.cursor()
 	test = True
 	if test:
-		print(cursor.execute("INSERT INTO Comments (comment_owner, comment_text, commentDate, comment_photo_id) VALUES (%d, %s, %d, %d)", (uid, comment, date, photoid)))
+		print(cursor.execute("INSERT INTO Comments (comment_owner, comment_text, comment_date, comment_photo_id) VALUES (%s, %s, %s, %s)", (uid, comment, day, photoid)))
 		conn.commit()
-		return render_template('hello.html', name=flask_login.current_user.id, message='Comment Added!', photos=getUsersPhotos(uid),base64=base64)
+		print(getAllComments())
+		return render_template('photos.html', name=flask_login.current_user.id, message='Photo uploaded!', photos=getAllPhotos(), albums=getAllAlbums(), tags=getAllTags(), comments=getAllComments(), base64=base64)
 
-
-#get today's date
-def getDate():
-    return datetime.datetime.today()
 
 #default page
 @app.route("/", methods=['GET'])
