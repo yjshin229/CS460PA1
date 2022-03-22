@@ -9,8 +9,19 @@
             <form method="post" enctype="multipart/form-data" action="/upload">
                 <label for="photo">Select photo:</label>
                 <input type="file" name="photo" required='true' /><br />
-                <label for="caption">Please caption:</label>
+                <label for="caption">Select caption:</label>
                 <input type="text" name="caption" required='true' /><br />
+                <label for="tag">Select tag:</label>
+                <input type="text" name="tag" required='true' /><br />
+                <input type="submit" value="Upload" />
+            </form>
+
+        <div class="title">
+            <h1>Create an album in Photoshare</h1>
+        </div>
+            <form method="post" enctype="multipart/form-data" action="{{ url_for('createAlbum')}}">
+                <label for="album_name">Album name:</label>
+                <input type="text" name="album_name" required='true' /><br />
                 <input type="submit" value="Upload" />
             </form>
 

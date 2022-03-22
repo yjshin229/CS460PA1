@@ -16,7 +16,12 @@
         <h2>Here is your albums</h2>
         <ul>
             {%for album in albums%}
-                <a href ="photos/{{album}}">{{album}}</a>
+                <a href ="{{album}}">{{album[0]}}</a>
+                <br>  
+                <form method="post" action="{{url_for('delete_album')}}">
+                    <input type="hidden" name="album_id" value="{{album[1]}}">
+                    <input type="submit" value="Delete">
+                </form>
             {% endfor %}
         </ul>
      {% endif %}
@@ -27,6 +32,10 @@
          {%for photo in photos%}
          <li>{{photo[2]}}<br>
             <img src='data:image/jpg;base64, {{ base64.b64encode(photo[0]).decode("ascii") }}'/></li>
+            <form method="post" action="{{url_for('delete_picture')}}">
+                <input type="hidden" name="picture_id" value="{{photo[1]}}">
+                <input type="submit" value="Delete">
+            </form>
          {% endfor %}
      </ul>
     {% endif %}
