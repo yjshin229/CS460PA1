@@ -1,4 +1,14 @@
 
+    {% if tags %}
+    <p>Tags:</p>
+    <ul>
+        {% for tag in tags %}
+        <a>{{tag[0]}}</a>
+
+        {% endfor %}
+    </ul>
+    {% endif %}
+
     {% if photos %}
     <p>Photos:</p>
     <ul>
@@ -26,5 +36,6 @@
     </ul>
     {% endif %}
 
+    
         
     </head>

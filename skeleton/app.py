@@ -249,7 +249,7 @@ def getAlbum(uid):
     albums = [item[0] for item in data]
     return albums
 
-@app.route('/profile_album', methods=['GET', 'POST'])
+@app.route('/profile', methods=['GET', 'POST'])
 @flask_login.login_required
 def delete_album():
     if request.method == 'POST':
@@ -260,12 +260,12 @@ def delete_album():
         cursor.execute("DELETE FROM Pictures WHERE album_id= '{0}'".format(album_id))
         cursor.execute("DELETE FROM Albums WHERE albums_id = '{0}'".format(album_id))
         conn.commit()
-        return render_template('profile.html',name = flask_login.current_user.id, friends = getFriendsList(user_id),
+        return flask.redirect(url_for('delete_album',name = flask_login.current_user.id, friends = getFriendsList(user_id),
 						   photos = getUsersPhotos(user_id),
 						   albums = getUsersAlbums(user_id),
                            userActivity = userActivity(),
                            message= "Album Deleted!",
-						   base64=base64)
+						   base64=base64))
     else:
         return flask.redirect(url_for('protected'))
     
@@ -284,6 +284,17 @@ def getAlbumPhotos(album_name,user_id):
     cursor.execute("SELECT imgdata, caption FROM WHERE album_id = album_id")
     pictures = cursor.fetchall()
     return pictures
+
+@flask_login.login_required
+def addPhototoAlbum():
+	album_id = request.form.get['album']
+	imgdata = request.form.get['photo']
+	caption = request.form.get['caption']
+	user_id = getUserIdFromEmail(flask_login.current_user.id)
+	cursor = conn.cursor()
+	cursor.execute("INSERT INTO Pictures (user_id, imgdata, caption, album_id) VALUES (%d, %s, %s, %d)", (user_id, imgdata, caption, album_id))
+	conn.commit()
+
     
 
 @app.route('/pictures', methods = ['GET'])
@@ -314,12 +325,12 @@ def upload_file():
 		cursor = conn.cursor()
 		cursor.execute('''INSERT INTO Tags (tag, picture_id) VALUES (%s, %d)''' ,(tag, photo_id))
 		conn.commit()
-		return render_template('photos.html', name=flask_login.current_user.id, message='Photo uploaded!', photos=getAllPhotos(), albums=getAllAlbums(), base64=base64)
+		return render_template('photos.html', name=flask_login.current_user.id, message='Photo uploaded!', photos=getAllPhotos(), albums=getAllAlbums(), tags=getAllTags(), base64=base64)
 	#The method is GET so we return a  HTML form to upload the a photo.
 	else:
 		return render_template('upload.html')
 
-@app.route('/profile_pic', methods=['GET', 'POST'])
+@app.route('/profile', methods=['GET', 'POST'])
 def delete_picture():
 	if request.method == 'POST':
 		picture_id = request.form.get('picture_id')
@@ -327,7 +338,7 @@ def delete_picture():
 		cursor = conn.cursor()
 		cursor.execute("DELETE FROM Pictures WHERE picture_id = '{0}'".format(picture_id))
 		conn.commit()
-		return flask.redirect(url_for('profile.html', name=flask_login.current_user.id,
+		return flask.redirect(url_for('delete_picture', name=flask_login.current_user.id,
 							friends = getFriendsList(user_id),
 							photos = getUsersPhotos(user_id),
 							albums = getUsersAlbums(user_id),
@@ -367,6 +378,11 @@ def getAllAlbums():
 	cursor.execute("SELECT albums_id, album_name FROM Albums")
 	return cursor.fetchall()
 
+def getAllTags():
+	cursor = conn.cursor()
+	print(cursor.execute("SELECT DISTINCT tag FROM Tags"))
+	return cursor.fetchall()
+
 def getUsersPhotosComments(uid):
 	cursor = conn.cursor()
 	cursor.execute("SELECT comments_id, comment_owner, comment_photo_id, comment_text, comment_date FROM Comments INNER JOIN Pictures ON Comments.comment_photo_id=Pictures.picture_id AND Pictures.user_id='{0}' GROUP BY Comments.comment_photo_id ORDER BY Comments.comment_date".format(uid))
@@ -389,7 +405,7 @@ def getAlbumId(album_name, user_id):
     
 @app.route("/photos", methods=['GET'])
 def display_photos():
-	return render_template('photos.html', photos=getAllPhotos(), albums=getAllAlbums(), base64=base64)
+	return render_template('photos.html', photos=getAllPhotos(), albums=getAllAlbums(), tags=getAllTags(), base64=base64)
 
 @app.route("/hello", methods=['POST'])
 def add_comment():
