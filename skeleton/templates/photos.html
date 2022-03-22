@@ -1,12 +1,22 @@
 
     {% if tags %}
+    {% if poptags %}
     <p>Tags:</p>
     <ul>
+        <h4>All photos:</h4>
         {% for tag in tags %}
         <a>{{tag[0]}}</a>
-
+        {% endfor %}
+        <h4>User photos:</h4>
+        {% for tag in tags %}
+        <a>{{tag[0]}}</a>
+        {% endfor %}
+        <h4>Popular tags:</h4>
+        {% for poptag in poptags %}
+        <a>{{poptag[0]}}</a>
         {% endfor %}
     </ul>
+    {% endif %}
     {% endif %}
 
     {% if photos %}
@@ -15,7 +25,15 @@
     <ul>
         {% for photo in photos %}
         <h2>{{photo[2]}}</h2><br>
-            <img src='data:image/jpg;base64, {{ base64.b64encode(photo[0]).decode("ascii") }}'/></li>
+            <img src='data:image/jpg;base64, {{ base64.b64encode(photo[0]).decode("ascii") }}'/></li><br>
+            <a href="{{url_for('likePhoto', photoid= photo[1] )}}"><img src="{{url_for('static', filename='thumb.png')}}" align="middle" /></a>
+            {%if likes%}
+            {% for like in likes %}
+                {% if like[0] == photo[1] %}
+                <p>Like Count: {{like[1]}}</p>
+                {% endif %}
+            {% endfor %}
+            {% endif %}
             {% if photo[3] != name %}
             <form method="post" action="{{ url_for('add_comment') }}">
                 <label for="comment">Comment: </label>

@@ -20,7 +20,7 @@
                 <br>  
                 <form method="post" action="{{url_for('delete_album')}}">
                     <input type="hidden" name="album_id" value="{{album[1]}}">
-                    <input type="submit" value="Delete">
+                    <input type="submit" value="Delete Album">
                 </form>
             {% endfor %}
         </ul>
@@ -34,7 +34,7 @@
             <img src='data:image/jpg;base64, {{ base64.b64encode(photo[0]).decode("ascii") }}'/></li>
             <form method="post" action="{{url_for('delete_picture')}}">
                 <input type="hidden" name="picture_id" value="{{photo[1]}}">
-                <input type="submit" value="Delete">
+                <input type="submit" value="Delete Photo">
             </form>
          {% endfor %}
      </ul>

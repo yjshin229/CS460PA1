@@ -263,6 +263,7 @@ def delete_album():
         return flask.redirect(url_for('delete_album',name = flask_login.current_user.id, friends = getFriendsList(user_id),
 						   photos = getUsersPhotos(user_id),
 						   albums = getUsersAlbums(user_id),
+						   comments = getAllComments(),
                            userActivity = userActivity(),
                            message= "Album Deleted!",
 						   base64=base64))
@@ -325,7 +326,7 @@ def upload_file():
 		cursor = conn.cursor()
 		cursor.execute('''INSERT INTO Tags (tag, picture_id) VALUES (%s, %d)''' ,(tag, photo_id))
 		conn.commit()
-		return render_template('photos.html', name=flask_login.current_user.id, message='Photo uploaded!', photos=getAllPhotos(), albums=getAllAlbums(), tags=getAllTags(), comments=getAllComments(), base64=base64)
+		return render_template('photos.html', name=flask_login.current_user.id, message='Photo uploaded!', photos=getAllPhotos(), albums=getAllAlbums(), tags=getAllTags(), poptags=getPopularTags(), comments=getAllComments(), base64=base64)
 	#The method is GET so we return a  HTML form to upload the a photo.
 	else:
 		return render_template('upload.html')
@@ -369,6 +370,11 @@ def getUsersAlbums(uid):
 	cursor.execute("SELECT album_name, albums_id FROM Albums WHERE owner_id='{0}'".format(uid))
 	return cursor.fetchall()
 
+def getUsersFromComment():
+	comment = request.form.get('comment')
+	cursor.execute("SELECT firstname,COUNT(*)  AS ccount FROM Comments, USERS WHERE comment_text='{0}' AND Comments.comment_owner=Users.user_id GROUP BY comment_owner ORDER BY ccount DESC".format(comment))
+	return cursor.fetchall()
+
 def getAllPhotos():
 	cursor = conn.cursor()
 	cursor.execute("SELECT imgdata, picture_id, caption, user_id FROM Pictures")
@@ -389,6 +395,15 @@ def getAllComments():
 	print(cursor.execute("SELECT comment_photo_id, comment_text, comment_date FROM Comments ORDER BY comment_date DESC"))
 	return cursor.fetchall()
 
+def getAllLikes():
+	cursor = conn.cursor()
+	print(cursor.execute("SELECT photo_id, COUNT(*) FROM Likes GROUP BY photo_id"))
+	return cursor.fetchall()
+
+def getLikesForPhoto():
+	photo_id = request.args.get('photo_id')
+	cursor = conn.cursor("SELECT firstname FROM Users, Likes WHERE Likes.photo_id='{0}' and Users.user_id = Likes.user_id".format(photo_id))
+
 def getUsersPhotosComments(uid):
 	cursor = conn.cursor()
 	cursor.execute("SELECT comments_id, comment_owner, comment_photo_id, comment_text, comment_date FROM Comments INNER JOIN Pictures ON Comments.comment_photo_id=Pictures.picture_id AND Pictures.user_id='{0}' GROUP BY Comments.comment_photo_id ORDER BY Comments.comment_date".format(uid))
@@ -404,16 +419,46 @@ def getUserIdFromEmail(email):
 	cursor.execute("SELECT user_id  FROM Users WHERE email = '{0}'".format(email))
 	return cursor.fetchone()[0]
 
+def getAllPhotosfromTag():
+	tag = request.args.get('tag')
+	cursor = conn.cursor()
+	cursor.execute("SELECT Tags.picture_id, imgdata FROM Pictures, Tags WHERE Pictures.picture_id=Tags.picture_id AND Tags.tag = '{0}'".format(tag))
+	return cursor.fetchall()
+
+def getPopularTags():
+	cursor = conn.cursor()
+	cursor.execute("SELECT tag,COUNT(*)  AS ccount FROM Tags GROUP BY tag ORDER BY ccount DESC")
+	return cursor.fetchall()
+
+@flask_login.login_required
+def getUserPhotosfromTag():
+	tag = request.args.get('tag')
+	uid = getUserIdFromEmail(flask_login.current_user.id)
+	cursor = conn.cursor()
+	cursor.execute("SELECT Tags.picture_id, imgdata FROM Pictures, Tags WHERE Pictures.picture_id=Tags.picture_id AND Pictures.user_id='{0}' AND Tags.tag = '{1}'".format(uid, tag))
+	return cursor.fetchall()
+
 def getAlbumId(album_name, user_id):
     cursor = conn.cursor()
     cursor.execute("SELECT albums_id FROM Albums WHERE album_name = '{0}' AND owner_id = '{1}'".format(album_name,user_id))
     return cursor.fetchone()[0]
     
+@flask_login.login_required
+@app.route("/photos")
+def likePhoto():
+	photoid = request.args.get('photoid')
+	print(photoid)
+	uid = getUserIdFromEmail(flask_login.current_user.id)
+	cursor = conn.cursor()
+	cursor.execute("INSERT INTO Likes (user_id, photo_id) VALUES (%s, %s)", (uid, photoid))
+	conn.commit()
+	return render_template('photos.html', name=flask_login.current_user.id, message='Photo uploaded!', photos=getAllPhotos(), albums=getAllAlbums(), tags=getAllTags(), poptags=getPopularTags(), comments=getAllComments(), likes=getAllLikes(), base64=base64)
+	
 @app.route("/photos", methods=['GET'])
 def display_photos():
 	print(getAllComments())
 	print("uid", getUserIdFromEmail(flask_login.current_user.id))
-	return render_template('photos.html', name=getUserIdFromEmail(flask_login.current_user.id), photos=getAllPhotos(), albums=getAllAlbums(), tags=getAllTags(), comments=getAllComments(), base64=base64)
+	return render_template('photos.html', name=getUserIdFromEmail(flask_login.current_user.id), photos=getAllPhotos(), albums=getAllAlbums(), tags=getAllTags(), poptags=getPopularTags(), comments=getAllComments(), likes=getAllLikes(), base64=base64)
 
 @app.route("/hello", methods=['POST'])
 def add_comment():
@@ -432,7 +477,7 @@ def add_comment():
 		print(cursor.execute("INSERT INTO Comments (comment_owner, comment_text, comment_date, comment_photo_id) VALUES (%s, %s, %s, %s)", (uid, comment, day, photoid)))
 		conn.commit()
 		print(getAllComments())
-		return render_template('photos.html', name=flask_login.current_user.id, message='Photo uploaded!', photos=getAllPhotos(), albums=getAllAlbums(), tags=getAllTags(), comments=getAllComments(), base64=base64)
+		return render_template('photos.html', name=flask_login.current_user.id, message='Photo uploaded!', photos=getAllPhotos(), albums=getAllAlbums(), tags=getAllTags(), comments=getAllComments(), likes=getAllLikes(), base64=base64)
 
 
 #default page
