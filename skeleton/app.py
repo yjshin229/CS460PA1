@@ -172,10 +172,8 @@ def protected():
     print(flask_login.current_user.id)
     return render_template('profile.html', name=flask_login.current_user.id,
                            friends = getFriendsList(user_id),
-						   photos = getUsersPhotos(user_id),
                            userActivity = userActivity(),
-                           message= "Here's your profile",
-						   base64=base64)
+                           message= "Here's your profile")
 
 #FRIENDS
 
@@ -228,11 +226,11 @@ def userActivity():
 @flask_login.login_required
 def createAlbum():
     if request.method == 'POST':
-        user_id = flask_login.current_user.id
+        user_id = getUserIdFromEmail(flask_login.current_user.id)
         album_name = request.form.get('album_name')
         albumDate = getDate()
         cursor = conn.cursor()
-        cursor.execute("INSERT INTO Albums (almbum_name, albumDate, user_id) VALUES ('{0}','{1}','{2}')".format(album_name, albumDate, user_id))
+        cursor.execute("INSERT INTO Albums (almbum_name, albumDate, user_id) VALUES ('{0}','{0}','{0}')".format(album_name, albumDate, user_id))
         conn.commit()
         return flask.redirect(url_for('protected'))
     else:
@@ -240,7 +238,7 @@ def createAlbum():
 
 def getAlbum(uid):
     cursor = conn.cursor()
-    cursor.execute("SELECT album_name FROM Albums WHERE user_id = '{0}'".format(uid))
+    cursor.execute("SELECT album_name FROM Albums WHERE usere_id = '{0}'".format(uid))
     data = cursor.fetchall()
     albums = [item[0] for item in data]
     return albums
@@ -286,18 +284,17 @@ def pictures(album_name,email):
 
 @app.route('/upload', methods=['GET', 'POST'])
 @flask_login.login_required
-def upload_file():
+def upload_file(album_name):
 	if request.method == 'POST':
 		uid = getUserIdFromEmail(flask_login.current_user.id)
 		imgfile = request.files['photo']
 		caption = request.form.get('caption')
-		# album_id = getAlbumId(album_name,uid)
+		album_id = getAlbumId(album_name,uid)
 		imgdata =imgfile.read()
 		cursor = conn.cursor()
-		cursor.execute('''INSERT INTO Pictures (user_id, imgdata, caption) VALUES (%s, %s, %s )''' ,(uid,imgdata,caption))
+		cursor.execute("INSERT INTO Pictures (user_id, imgdata, caption, album_id) VALUES ('{0}','{1}','{2}','{3}' )".format(uid,imgdata,caption,album_id))
 		conn.commit()
-		print(getUsersPhotos(uid))
-		return render_template('photos.html', name=flask_login.current_user.id, message='Photo uploaded!', photos=getAllPhotos(), albums=getAllAlbums(), base64=base64)
+		return render_template('photos.html', name=flask_login.current_user.id, message='Photo uploaded!', photos=getUsersPhotos(uid),base64=base64)
 	#The method is GET so we return a  HTML form to upload the a photo.
 	else:
 		return render_template('upload.html')
@@ -325,16 +322,6 @@ def getUsersPhotos(uid):
 	cursor.execute("SELECT imgdata, picture_id, caption FROM Pictures WHERE user_id = '{0}'".format(uid))
 	return cursor.fetchall() #NOTE list of tuples, [(imgdata, pid), ...]
 
-def getAllPhotos():
-	cursor = conn.cursor()
-	cursor.execute("SELECT imgdata, picture_id, caption FROM Pictures")
-	return cursor.fetchall()
-
-def getAllAlbums():
-	cursor = conn.cursor()
-	cursor.execute("SELECT albums_id, album_name FROM Albums")
-	return cursor.fetchall()
-
 def getUsersPhotosComments(uid):
 	cursor = conn.cursor()
 	cursor.execute("SELECT comments_id, comment_owner, comment_photo_id, comment_text, comment_date FROM Comments INNER JOIN Pictures ON Comments.comment_photo_id=Pictures.picture_id AND Pictures.user_id='{0}' GROUP BY Comments.comment_photo_id ORDER BY Comments.comment_date".format(uid))
@@ -350,10 +337,13 @@ def getAlbumId(album_name, user_id):
     cursor.execute("SELECT album_id FROM Albums WHERE album_name = '{0}' AND user_id = '{1}'".format(album_name,user_id))
     return cursor.fetchone()[0]
     
-@app.route("/photos", methods=['GET'])
-def display_photos():
-	return render_template('photos.html', photos=getAllPhotos(), albums=getAllAlbums(), base64=base64)
+#get today's date
+def getDate():
+    return datetime.date.today()
 
+
+
+#comments function
 @app.route("/hello", methods=['POST'])
 def add_comment():
 	uid = getUserIdFromEmail(flask_login.current_user.id)
@@ -370,12 +360,6 @@ def add_comment():
 		print(cursor.execute("INSERT INTO Comments (comment_owner, comment_text, commentDate, comment_photo_id) VALUES (%d, %s, %d, %d)", (uid, comment, date, photoid)))
 		conn.commit()
 		return render_template('hello.html', name=flask_login.current_user.id, message='Comment Added!', photos=getUsersPhotos(uid),base64=base64)
-
-
-#get today's date
-def getDate():
-    return datetime.date.today()
-
 #default page
 @app.route("/", methods=['GET'])
 def hello():
