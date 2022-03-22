@@ -16,7 +16,7 @@
         {% endfor %}
         <h4>Popular tags:</h4>
         {% for poptag in poptags %}
-        <a>{{poptag[0]}}</a>
+        <a href ="{{url_for('allPhotosFromPopTag', tag = poptag[0])}}">{{poptag[0]}}</a>
         {% endfor %}
     </ul>
     {% endif %}
@@ -34,7 +34,7 @@
             {%if likes%}
             {% for like in likes %}
                 {% if like[0] == photo[1] %}
-                <p>Like Count: {{like[1]}}</p>
+                <a href ="{{url_for('usersWhoLiked', photo_id = photo[1])}}">Like Count: {{like[1]}}</a>
                 {% endif %}
             {% endfor %}
             {% endif %}

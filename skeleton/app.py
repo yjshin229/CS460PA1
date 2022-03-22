@@ -354,6 +354,23 @@ def displayAllPopTagPhotos():
 	else:
 		return flask.redirect(url_for('protected'))
 
+@app.route('/usersWhoLiked/<photo_id>')
+def getUsersWhoLiked(photo_id):
+	photo_id = request.args.get('photo_id')
+	cursor = conn.cursor()
+	cursor.execute("SELECT firstname FROM Users, Likes WHERE Likes.photo_id='{0}' and Users.user_id = Likes.user_id".format(photo_id))
+	likers = cursor.fetchall()
+	return render_template("usersWhoLiked.html", photo_id=photo_id, users=likers)
+
+@app.route('/usersWhoLiked', methods =['GET', 'POST'])
+@flask_login.login_required
+def displayUsersWhoLiked():
+	if request.method =='POST':
+		photo_id = request.args.get('photo_id')
+		return render_template('usersWhoLiked.html', photo_id=photo_id)
+	else:
+		return flask.redirect(url_for('protected'))
+
 @app.route('/pictures', methods = ['GET'])
 def pictures(album_name,email):
     user_id = getUserIdFromEmail(email)
@@ -377,7 +394,7 @@ def upload_file():
 		cursor = conn.cursor()
 		cursor.execute('''INSERT INTO Pictures (user_id, imgdata, caption) VALUES (%s, %s, %s )''' ,(uid,imgdata,caption))
 		conn.commit()
-		photo_id = getPhotoId(uid, imgdata)
+		photo_id = getPhotoId(uid, caption)
 		print(photo_id)
 		cursor = conn.cursor()
 		cursor.execute('''INSERT INTO Tags (tag, picture_id) VALUES (%s, %s)''' ,(tag, photo_id))
@@ -465,9 +482,10 @@ def getUsersPhotosComments(uid):
 	cursor.execute("SELECT comments_id, comment_owner, comment_photo_id, comment_text, comment_date FROM Comments INNER JOIN Pictures ON Comments.comment_photo_id=Pictures.picture_id AND Pictures.user_id='{0}' GROUP BY Comments.comment_photo_id ORDER BY Comments.comment_date".format(uid))
 	return cursor.fetchall()
 
-def getPhotoId(uid, imgdata):
+def getPhotoId(uid, caption):
 	cursor = conn.cursor()
-	cursor.execute('''SELECT picture_id FROM Pictures WHERE Pictures.user_id='{0}' AND Pictures.imgdata=imgdata'''.format(uid))
+	print(caption)
+	cursor.execute("SELECT picture_id FROM Pictures WHERE Pictures.user_id='{0}' AND Pictures.caption='{1}'".format(uid, caption))
 	return cursor.fetchone()[0]
 
 def getUserIdFromEmail(email):
