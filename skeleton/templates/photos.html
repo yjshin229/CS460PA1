@@ -1,8 +1,11 @@
-
+    {%block content%}
+    {%endblock%}
+    
     {% if tags %}
     {% if poptags %}
     <p>Tags:</p>
     <ul>
+        <a>Search by tag</a>
         <h4>All photos:</h4>
         {% for tag in tags %}
         <a>{{tag[0]}}</a>
@@ -19,6 +22,7 @@
     {% endif %}
     {% endif %}
 
+    <a>Search Comments</a>
     {% if photos %}
     {% if comments %}
     <p>Photos:</p>
@@ -57,7 +61,7 @@
     <p>Albums:</p>
     <ul>
         {% for album in albums %}
-        <a>{{album[1]}}</a>
+        
 
         {% endfor %}
     </ul>

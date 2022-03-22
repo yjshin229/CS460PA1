@@ -1,0 +1,17 @@
+
+    {% extends "photos.html"%}
+
+    {%block content%}
+    {%if message%}
+    <p>{{message}}</p>
+    {%endif%}
+    <p>Add photos to the album!</p>
+    <form method="post" enctype="multipart/form-data" action = "{{url_for('addPhotoToAlbum')}}">
+        <label for="m_photo">Select photo:</label>
+        <input type="file" name="photo"><br>
+        <label for="m_caption">Please caption:</label>
+        <input type="text" name="caption"><br>
+        <input type="submit" value="Upload">
+    </form>
+    
+    {% endblock %}</body>

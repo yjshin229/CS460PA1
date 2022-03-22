@@ -174,7 +174,6 @@ def protected():
                            friends = getFriendsList(user_id),
 						   photos = getUsersPhotos(user_id),
 						   albums = getUsersAlbums(user_id),
-                           userActivity = userActivity(),
                            message= "Here's your profile",
 						   base64=base64)
 
@@ -279,24 +278,40 @@ def allowed_file(filename):
 	return '.' in filename and filename.rsplit('.', 1)[1] in ALLOWED_EXTENSIONS
 
     
-def getAlbumPhotos(album_name,user_id):
-    album_id = getAlbumId(album_name, user_id)
+@app.route('/photosInAlbum/<album_id>')   
+def getAlbumPhotos(album_id):
     cursor = conn.cursor()
-    cursor.execute("SELECT imgdata, caption FROM WHERE album_id = album_id")
+    cursor.execute("SELECT imgdata, caption FROM Pictures WHERE album_id = '{0}'".format(album_id))
     pictures = cursor.fetchall()
-    return pictures
+    return render_template("photosInAlbum.html", album_id = album_id, photos = pictures)
 
+@app.route('/photosInAlbum',  methods =['GET','POST'])
 @flask_login.login_required
-def addPhototoAlbum():
-	album_id = request.form.get['album']
-	imgdata = request.form.get['photo']
-	caption = request.form.get['caption']
-	user_id = getUserIdFromEmail(flask_login.current_user.id)
-	cursor = conn.cursor()
-	cursor.execute("INSERT INTO Pictures (user_id, imgdata, caption, album_id) VALUES (%d, %s, %s, %d)", (user_id, imgdata, caption, album_id))
-	conn.commit()
+def addPhotoToAlbum():
+    if request.method =='POST':
+        user_id = getUserIdFromEmail(flask_login.current_user.id)
+        imgfile = request.files['photo']
+        imgdata = imgfile.read()
+        caption = request.form.get('caption')
+        album_id = request.args.get('album_id')
+        cursor = conn.cursor()
+        cursor.execute("INSERT INTO Pictures (user_id, imgdata, caption, album_id) VALUES ('{0}', '{1}', '{2}', '{3}')".
+                       format(user_id, imgdata, caption, album_id))  # not sure why the encoding for image isn't working
+        conn.commit()
+        return render_template('photosInAlbum.html',name = flask_login.current_user.id, 
+						   photos = getAlbumPhotos(album_id), album_id = album_id,
+                           message= "Photo uploaded!")
+    else:
+        return flask.redirect(url_for('protected'))
 
     
+@app.route('/allPhotosFromTag/<tag>')
+def getTagPhotos(tag):
+	cursor = conn.cursor()
+	cursor.execute("SELECT Tags.picture_id, imgdata FROM Pictures, Tags WHERE Pictures.picture_id=Tags.picture_id AND Tags.tag = '{0}'".format(tag))
+	pictures = cursor.fetchall()
+	return render_template("allPhotosFromTag.html", tag=tag, photos=pictures)
+
 
 @app.route('/pictures', methods = ['GET'])
 def pictures(album_name,email):
@@ -321,12 +336,12 @@ def upload_file():
 		cursor = conn.cursor()
 		cursor.execute('''INSERT INTO Pictures (user_id, imgdata, caption) VALUES (%s, %s, %s )''' ,(uid,imgdata,caption))
 		conn.commit()
-		photo_id = getPhotoID(user_id, imgdata)
-		print(getUsersPhotos(uid))
+		photo_id = getPhotoId(uid, imgdata)
+		print(photo_id)
 		cursor = conn.cursor()
-		cursor.execute('''INSERT INTO Tags (tag, picture_id) VALUES (%s, %d)''' ,(tag, photo_id))
+		cursor.execute('''INSERT INTO Tags (tag, picture_id) VALUES (%s, %s)''' ,(tag, photo_id))
 		conn.commit()
-		return render_template('photos.html', name=flask_login.current_user.id, message='Photo uploaded!', photos=getAllPhotos(), albums=getAllAlbums(), tags=getAllTags(), poptags=getPopularTags(), comments=getAllComments(), base64=base64)
+		return render_template('photos.html', name=flask_login.current_user.id, message='Photo uploaded!', photos=getAllPhotos(), albums=getAllAlbums(), tags=getAllTags(), poptags=getPopularTags(), comments=getAllComments(), likes=getAllLikes(), base64=base64)
 	#The method is GET so we return a  HTML form to upload the a photo.
 	else:
 		return render_template('upload.html')
@@ -367,7 +382,7 @@ def getUsersPhotos(uid):
 
 def getUsersAlbums(uid):
 	cursor = conn.cursor()
-	cursor.execute("SELECT album_name, albums_id FROM Albums WHERE owner_id='{0}'".format(uid))
+	cursor.execute("SELECT albums_id, album_name FROM Albums WHERE owner_id='{0}'".format(uid))
 	return cursor.fetchall()
 
 def getUsersFromComment():
@@ -411,7 +426,7 @@ def getUsersPhotosComments(uid):
 
 def getPhotoId(uid, imgdata):
 	cursor = conn.cursor()
-	cursor.execute('''SELECT pictureID FROM Pictures WHERE Pictures.user_id=uid AND Pictures.imgdata=imgdata''')
+	cursor.execute('''SELECT picture_id FROM Pictures WHERE Pictures.user_id='{0}' AND Pictures.imgdata=imgdata'''.format(uid))
 	return cursor.fetchone()[0]
 
 def getUserIdFromEmail(email):

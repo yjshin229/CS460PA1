@@ -1,0 +1,12 @@
+{% extends "photos.html" %}
+
+{%if message %}
+<p>{{message}}</p>
+{%endif%}
+     <h2>Search for comments</h2>
+     <form method="post" action="{{ url_for('getUsersFromComment') }}">
+        <label for="comment">Comment: </label>
+        <input type="text" name="comment"/>
+        <input type="submit">
+      </form>
+    {% endif %}

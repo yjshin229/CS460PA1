@@ -16,7 +16,7 @@
         <h2>Here is your albums</h2>
         <ul>
             {%for album in albums%}
-                <a href ="{{album}}">{{album[0]}}</a>
+                <a href ="{{url_for('getAlbumPhotos', album_id = album[0])}}">{{album[1]}}</a>
                 <br>  
                 <form method="post" action="{{url_for('delete_album')}}">
                     <input type="hidden" name="album_id" value="{{album[1]}}">
