@@ -308,10 +308,51 @@ def addPhotoToAlbum():
 @app.route('/allPhotosFromTag/<tag>')
 def getTagPhotos(tag):
 	cursor = conn.cursor()
-	cursor.execute("SELECT Tags.picture_id, imgdata FROM Pictures, Tags WHERE Pictures.picture_id=Tags.picture_id AND Tags.tag = '{0}'".format(tag))
+	cursor.execute("SELECT Tags.picture_id, imgdata, caption FROM Pictures, Tags WHERE Pictures.picture_id=Tags.picture_id AND Tags.tag = '{0}'".format(tag))
 	pictures = cursor.fetchall()
 	return render_template("allPhotosFromTag.html", tag=tag, photos=pictures)
 
+@app.route('/allPhotosFromTag', methods =['GET', 'POST'])
+def displayTagPhotos():
+	if request.method =='POST':
+		tag = request.args.get('tag')
+		return render_template('allPhotosFromTag.html', tag=tag)
+	else:
+		return flask.redirect(url_for('protected'))
+
+@app.route('/userPhotosFromTag/<tag>')
+def getUserTagPhotos(tag):
+	uid = getUserIdFromEmail(flask_login.current_user.id)
+	cursor = conn.cursor()
+	cursor.execute("SELECT Tags.picture_id, imgdata, caption FROM Pictures, Tags WHERE Pictures.picture_id=Tags.picture_id AND Pictures.user_id='{0}' AND Tags.tag = '{1}'".format(uid, tag))
+	pictures = cursor.fetchall()
+	return render_template("userPhotosFromTag.html", tag=tag, photos=pictures)
+
+@app.route('/userPhotosFromTag', methods =['GET', 'POST'])
+@flask_login.login_required
+def displayUserTagPhotos():
+	if request.method =='POST':
+		tag = request.args.get('tag')
+		return render_template('userPhotosFromTag.html', tag=tag)
+	else:
+		return flask.redirect(url_for('protected'))
+
+@app.route('/allPhotosFromPopTag/<tag>')
+def getAllPopTagPhotos(tag):
+	uid = getUserIdFromEmail(flask_login.current_user.id)
+	cursor = conn.cursor()
+	cursor.execute("SELECT Tags.picture_id, imgdata, caption FROM Pictures, Tags WHERE Pictures.picture_id=Tags.picture_id AND Pictures.user_id='{0}' AND Tags.tag = '{1}'".format(uid, tag))
+	pictures = cursor.fetchall()
+	return render_template("allPhotosFromPopTag.html", tag=tag, photos=pictures)
+
+@app.route('/allPhotosFromPopTag', methods =['GET', 'POST'])
+@flask_login.login_required
+def displayAllPopTagPhotos():
+	if request.method =='POST':
+		tag = request.args.get('tag')
+		return render_template('allPhotosFromPopTag.html', tag=tag)
+	else:
+		return flask.redirect(url_for('protected'))
 
 @app.route('/pictures', methods = ['GET'])
 def pictures(album_name,email):

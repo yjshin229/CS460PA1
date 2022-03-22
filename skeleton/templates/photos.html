@@ -1,6 +1,6 @@
     {%block content%}
     {%endblock%}
-    
+
     {% if tags %}
     {% if poptags %}
     <p>Tags:</p>
@@ -8,11 +8,11 @@
         <a>Search by tag</a>
         <h4>All photos:</h4>
         {% for tag in tags %}
-        <a>{{tag[0]}}</a>
+        <a href ="{{url_for('allPhotosFromTag', tag = tag[0])}}">{{tag[0]}}</a>
         {% endfor %}
         <h4>User photos:</h4>
         {% for tag in tags %}
-        <a>{{tag[0]}}</a>
+        <a href ="{{url_for('userPhotosFromTag', tag = tag[0])}}">{{tag[0]}}</a>
         {% endfor %}
         <h4>Popular tags:</h4>
         {% for poptag in poptags %}
@@ -61,7 +61,7 @@
     <p>Albums:</p>
     <ul>
         {% for album in albums %}
-        
+        <a>{{album[1]}}</a>
 
         {% endfor %}
     </ul>
