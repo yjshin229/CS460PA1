@@ -388,6 +388,23 @@ def displayUsersWhoLiked():
 	else:
 		return flask.redirect(url_for('protected'))
 
+@app.route('/photoFromProfile/<photo_id>')
+def getPhotoFromProfile(photo_id):
+	photo_id = request.args.get('photo_id')
+	cursor = conn.cursor()
+	cursor.execute("SELECT imgdata, picture_id FROM Pictures WHERE Pictures.photo_id = '{0}'".format(photo_id))
+	pictures = cursor.fetchall()
+	return render_template("photoFromProfile.html", photo_id=photo_id, photo=pictures)
+
+@app.route('/photoFromProfile', methods =['GET', 'POST'])
+@flask_login.login_required
+def displayPhotoFromProfile():
+	if request.method =='POST':
+		photo_id = request.args.get('photo_id')
+		return render_template('photoFromProfile.html', photo_id=photo_id)
+	else:
+		return flask.redirect(url_for('protected'))
+
 @app.route('/pictures', methods = ['GET'])
 def pictures(album_name,email):
     user_id = getUserIdFromEmail(email)
