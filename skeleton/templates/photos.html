@@ -1,26 +1,60 @@
     {%block content%}
     {%endblock%}
 
-    {% if tags %}
-    {% if poptags %}
-    <p>Tags:</p>
+    {% if albums %}
+    <p>
+    <h3>Albums:</h3>
     <ul>
-        <a>Search by tag</a>
-        <h4>All photos:</h4>
-        {% for tag in tags %}
-        <a href ="{{url_for('allPhotosFromTag', tag = tag[0])}}">{{tag[0]}}</a>
-        {% endfor %}
-        <h4>User photos:</h4>
-        {% for tag in tags %}
-        <a href ="{{url_for('userPhotosFromTag', tag = tag[0])}}">{{tag[0]}}</a>
-        {% endfor %}
-        <h4>Popular tags:</h4>
-        {% for poptag in poptags %}
-        <a href ="{{url_for('allPhotosFromPopTag', tag = poptag[0])}}">{{poptag[0]}}</a>
+        {% for album in albums %}
+        <li><a href ="{{url_for('getAlbumPhotos', album_id = album[0])}}">{{album[1]}}</a></li>
         {% endfor %}
     </ul>
+    </p>
     {% endif %}
-    {% endif %}
+
+    {%if message%}
+    <h3>{{message}}</h3>
+    {%endif%}
+    {%if tagged%}
+    {%if pictures%}
+        <p>results:</p>
+        {%for picture in pictures%}
+        <h2><img src="data:image/jpeg;base64,'.base64_encode([photo[0]).'"/></h2><br>
+    
+        {%endfor%}
+    {%else%}
+        <p>None:/</p>
+    {%endif%}
+    {%endif%}   
+
+    <form action="{{ url_for('taggedPhoto') }}" method = "POST">
+        <label for="tag">Search photos by tag: </label>
+        <input type = "text" name="tag" />
+        <input type="submit" name="submit" placeholder="Search"/>
+    </form>
+
+    
+   
+{% if tags %}
+    <h4>Tags:
+    {% for tag in tags %}
+    <a href ="{{url_for('getTagPhotos', tag = [tag])}}">{{tag}}</a>
+    {% endfor %}</h4>
+
+    <h4>User photos:
+    {% for tag in tags %}
+    <a href ="{{url_for('displayUserTagPhotos', tag = tag)}}">{{tag}}</a>
+    {% endfor %}</h4>
+
+{% endif %}
+    {% if poptags %}
+        <h4>Popular tags:
+        <ol>
+        {% for poptag in poptags %}
+        <li><a href ="{{url_for('getAllPopTagPhotos', poptag = "poptag")}}>{{poptag}}</a></li>
+        {% endfor %}</h4>
+        </ol>
+        {% endif %}
 
     <a>Search Comments</a>
     {% if photos %}
@@ -57,16 +91,12 @@
     {% endif %}
     {% endif %}
 
-    {% if albums %}
-    <p>Albums:</p>
-    <ul>
-        {% for album in albums %}
-        <a>{{album[1]}}</a>
-
-        {% endfor %}
-    </ul>
-    {% endif %}
-
+    {%if photos%}
+        {%for photo in photos%}
+        <h2><img src="data:image/jpeg;base64,'.base64_encode([photo[0]).'"/></h2><br>
     
+        {%endfor%}
+    {%endif%}
+
         
     </head>

@@ -1,0 +1,10 @@
+{%if photos%}
+{%for photo in photos%}
+<li>{{photo}}</li>
+<img src='data:image/jpg;base64, {{ base64.b64encode(photo[0]).decode("ascii") }}'/></li>
+{%endfor%}
+{%else%}
+<h2> There are no photos in this album! </h2>
+{%endif%}
+
+<a href = '/photos'>Back</a>
