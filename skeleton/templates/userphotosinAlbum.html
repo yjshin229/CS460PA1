@@ -1,0 +1,25 @@
+{%if photos%}
+<h2> Here are your photos! </h2>
+
+{%for photo in photos%}
+<h2>{{photo[2]}}</h2><br>
+<img src='data:image/jpg;base64, {{ base64.b64encode(photo[0]).decode("ascii") }}'/></li><br>
+{%endfor%}
+
+{%else%}
+<h2> There are no photos in this album. Let's add some!</h2>
+<div>
+    <p>Add photos to the album!</p>
+    <form method="post" enctype="multipart/form-data" action = "{{url_for('addPhotoToAlbum')}}">
+        <label for="m_photo">Select photo:</label>
+        <input type="file" name="photo"><br>
+        <label for="m_caption">Please caption:</label>
+        <input type="text" name="caption"><br>
+        <label for="tag">Add tag:</label>
+        <input type="text" name="tag" /><br />
+        <input type="submit" value="Upload">
+     </form>
+</div>
+
+{%endif%}
+    <!-- NEED TO ADD PHOTOS INTO ALBUM-->

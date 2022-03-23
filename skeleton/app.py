@@ -27,7 +27,7 @@ app.secret_key = 'super secret string'  # Change this!
 
 #These will need to be changed according to your creditionals
 app.config['MYSQL_DATABASE_USER'] = 'root'
-app.config['MYSQL_DATABASE_PASSWORD'] = 'GL2005-11!gj'
+app.config['MYSQL_DATABASE_PASSWORD'] = 'your_pw' #password for database change it!
 app.config['MYSQL_DATABASE_DB'] = 'photoshare'
 app.config['MYSQL_DATABASE_HOST'] = 'localhost'
 mysql.init_app(app)
@@ -222,7 +222,6 @@ def userActivity():
     data = [getUsernameFromEmail(item[0]) for item in data]
     return data
 
-# TAG MANAGEMENT
 
 #ALBUM MANAGEMENT
 
@@ -278,14 +277,14 @@ def allowed_file(filename):
 	return '.' in filename and filename.rsplit('.', 1)[1] in ALLOWED_EXTENSIONS
 
     
-@app.route('/photosInAlbum/<album_id>')   
-def getAlbumPhotos(album_id):
+@app.route('/userphotosInAlbum/<album_id>')   
+def getUserAlbumPhotos(album_id):
     cursor = conn.cursor()
     cursor.execute("SELECT imgdata, caption FROM Pictures WHERE album_id = '{0}'".format(album_id))
     pictures = cursor.fetchall()
-    return render_template("photosInAlbum.html", album_id = album_id, photos = pictures)
+    return render_template("userphotosInAlbum.html", album_id = album_id, photos = pictures)
 
-@app.route('/photosInAlbum',  methods =['GET','POST'])
+@app.route('/userphotosInAlbum',  methods =['GET','POST'])
 @flask_login.login_required
 def addPhotoToAlbum():
     if request.method =='POST':
@@ -298,27 +297,43 @@ def addPhotoToAlbum():
         cursor.execute("INSERT INTO Pictures (user_id, imgdata, caption, album_id) VALUES ('{0}', '{1}', '{2}', '{3}')".
                        format(user_id, imgdata, caption, album_id))  # not sure why the encoding for image isn't working
         conn.commit()
-        return render_template('photosInAlbum.html',name = flask_login.current_user.id, 
-						   photos = getAlbumPhotos(album_id), album_id = album_id,
+        return render_template('userphotosInAlbum.html',name = flask_login.current_user.id, 
+						   photos = getUserAlbumPhotos(album_id), album_id = album_id,
                            message= "Photo uploaded!")
     else:
         return flask.redirect(url_for('protected'))
 
-    
+#PUBLIC ALBUM PHOTOS. NOT ALLOWED TO DELETE OR ADD
+@app.route('/photosInAlbum/<album_id>')   
+def getAlbumPhotos(album_id):
+    cursor = conn.cursor()
+    cursor.execute("SELECT imgdata, caption FROM Pictures WHERE album_id = '{0}'".format(album_id))
+    pictures = cursor.fetchall()
+    return render_template("albumsForPublic.html", album_id = album_id, photos = pictures)
+
+# TAG MANAGEMENT
+'''
 @app.route('/allPhotosFromTag/<tag>')
 def getTagPhotos(tag):
 	cursor = conn.cursor()
 	cursor.execute("SELECT Tags.picture_id, imgdata, caption FROM Pictures, Tags WHERE Pictures.picture_id=Tags.picture_id AND Tags.tag = '{0}'".format(tag))
 	pictures = cursor.fetchall()
-	return render_template("allPhotosFromTag.html", tag=tag, photos=pictures)
+	return render_template("allPhotosFromTag.html", tagged=tag, photos=pictures)
+'''
 
-@app.route('/allPhotosFromTag', methods =['GET', 'POST'])
-def displayTagPhotos():
-	if request.method =='POST':
-		tag = request.args.get('tag')
-		return render_template('allPhotosFromTag.html', tag=tag)
-	else:
-		return flask.redirect(url_for('protected'))
+@app.route('/tagphoto', methods = ['GET','POST'])
+def taggedPhoto():
+    if request.method == 'POST':
+        tag = request.form.get('tag')
+        cursor.execute("SELECT Tags.picture_id, imgdata, caption FROM Pictures, Tags WHERE Pictures.picture_id=Tags.picture_id AND Tags.tag = '{0}'".format(tag))
+        pictures = cursor.fetchall()
+        return render_template('photos.html', tagged = tag, pictures= pictures, base64 = base64, message = "Here are the pictures you searched with %s!"%tag)
+
+@app.route('/tagResult/<tag>', methods = ['GET','POST'])  
+def getTagPhotos(tag):
+    cursor.execute("SELECT Tags.picture_id, imgdata, caption FROM Pictures, Tags WHERE Pictures.picture_id=Tags.picture_id AND Tags.tag = tag")
+    pictures = cursor.fetchall()
+    return render_template('photos.html',tagged= tag, pictures = pictures, message = "We found pictures with tag: %s!"%tag)
 
 @app.route('/userPhotosFromTag/<tag>')
 def getUserTagPhotos(tag):
@@ -327,6 +342,7 @@ def getUserTagPhotos(tag):
 	cursor.execute("SELECT Tags.picture_id, imgdata, caption FROM Pictures, Tags WHERE Pictures.picture_id=Tags.picture_id AND Pictures.user_id='{0}' AND Tags.tag = '{1}'".format(uid, tag))
 	pictures = cursor.fetchall()
 	return render_template("userPhotosFromTag.html", tag=tag, photos=pictures)
+
 
 @app.route('/userPhotosFromTag', methods =['GET', 'POST'])
 @flask_login.login_required
@@ -337,13 +353,14 @@ def displayUserTagPhotos():
 	else:
 		return flask.redirect(url_for('protected'))
 
-@app.route('/allPhotosFromPopTag/<tag>')
-def getAllPopTagPhotos(tag):
-	uid = getUserIdFromEmail(flask_login.current_user.id)
+@app.route('/allPhotosFromPopTag/<poptag>')
+def getAllPopTagPhotos(poptag):
+	user_id = getUserIdFromEmail(flask_login.current_user.id)
 	cursor = conn.cursor()
-	cursor.execute("SELECT Tags.picture_id, imgdata, caption FROM Pictures, Tags WHERE Pictures.picture_id=Tags.picture_id AND Pictures.user_id='{0}' AND Tags.tag = '{1}'".format(uid, tag))
+	cursor.execute('''SELECT Tags.picture_id, imgdata, caption FROM Pictures, Tags WHERE Pictures.picture_id=Tags.picture_id AND Pictures.user_id= '{0}' AND Tags.tag = "{1}"'''.format(user_id,poptag))
 	pictures = cursor.fetchall()
-	return render_template("allPhotosFromPopTag.html", tag=tag, photos=pictures)
+	return render_template("photos.html", tagged=poptag, photos=pictures, message = "We found picture with popular tag : %s"%poptag)
+
 
 @app.route('/allPhotosFromPopTag', methods =['GET', 'POST'])
 @flask_login.login_required
@@ -459,13 +476,15 @@ def getAllAlbums():
 	return cursor.fetchall()
 
 def getAllTags():
-	cursor = conn.cursor()
-	print(cursor.execute("SELECT DISTINCT tag FROM Tags"))
-	return cursor.fetchall()
+    cursor = conn.cursor()
+    cursor.execute("SELECT DISTINCT tag FROM Tags")
+    data = cursor.fetchall()
+    tag = [item[0] for item in data]
+    return tag
 
 def getAllComments():
 	cursor = conn.cursor()
-	print(cursor.execute("SELECT comment_photo_id, comment_text, comment_date FROM Comments ORDER BY comment_date DESC"))
+	print(cursor.execute("SELECT comment_text, comment_photo_id, commentDate FROM Comments ORDER BY commentDate DESC"))
 	return cursor.fetchall()
 
 def getAllLikes():
@@ -501,8 +520,9 @@ def getAllPhotosfromTag():
 
 def getPopularTags():
 	cursor = conn.cursor()
-	cursor.execute("SELECT tag,COUNT(*)  AS ccount FROM Tags GROUP BY tag ORDER BY ccount DESC")
-	return cursor.fetchall()
+	cursor.execute("SELECT tag, COUNT(*) AS ccount FROM Tags GROUP BY tag ORDER BY ccount DESC")
+	data = cursor.fetchall()
+	return [item[0] for item in data]
 
 @flask_login.login_required
 def getUserPhotosfromTag():
@@ -551,7 +571,7 @@ def add_comment():
 		print(cursor.execute("INSERT INTO Comments (comment_owner, comment_text, comment_date, comment_photo_id) VALUES (%s, %s, %s, %s)", (uid, comment, day, photoid)))
 		conn.commit()
 		print(getAllComments())
-		return render_template('photos.html', name=flask_login.current_user.id, message='Photo uploaded!', photos=getAllPhotos(), albums=getAllAlbums(), tags=getAllTags(), comments=getAllComments(), likes=getAllLikes(), base64=base64)
+		return render_template('photos.html', name=flask_login.current_user.id, message='Comment added!', photos=getAllPhotos(), albums=getAllAlbums(), tags=getAllTags(), poptags=getPopularTags(), comments=getAllComments(), likes=getAllLikes(), base64=base64)
 
 
 #default page

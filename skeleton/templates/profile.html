@@ -16,7 +16,7 @@
         <h2>Here is your albums</h2>
         <ul>
             {%for album in albums%}
-                <a href ="{{url_for('getAlbumPhotos', album_id = album[0])}}">{{album[1]}}</a>
+                <a href ="{{url_for('getUserAlbumPhotos', album_id = album[0])}}">{{album[1]}}</a>
                 <br>  
                 <form method="post" action="{{url_for('delete_album')}}">
                     <input type="hidden" name="album_id" value="{{album[1]}}">
@@ -27,7 +27,7 @@
      {% endif %}
 
      {%if photos%}
-     <h2>Here is your photos</h2>
+     <h2>Here are your photos</h2>
      <ul>
          {%for photo in photos%}
          <li>{{photo[2]}}<br>
@@ -41,14 +41,14 @@
     {% endif %}
 
      {% if friends %}
-        <h1>This is your friends list!</h1>
+        <h1>This are your friends list!</h1>
         <ul>
             {% for friend in friends %}
                 <li>{{friend}}</li>
             {% endfor %}
         </ul>  
      {% endif %}
-        <h2>Find new friends!</h2>
+        <h>Find new friends!</h>
         <form action="{{ url_for('friendsList') }}" method = "POST">
             <input type = "text" name="fEmail" placeholder="Person's email" />
 
